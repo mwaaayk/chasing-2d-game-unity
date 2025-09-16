@@ -26,29 +26,37 @@ namespace Driball.Managers
         private float currentGemPitch = 1f;
         private float lastGemTime = 0f;
 
+        private void Awake()
+        {
+            if (audioSource == null)
+                audioSource = gameObject.AddComponent<AudioSource>();
+
+            audioSource.playOnAwake = false;
+        }
+
         private void OnEnable()
         {
             GameEvents.OnGemCollected += HandleGemCollected;
-            GameEvents.OnEnemyKill += () => PlaySFX(enemyKillSound);
-            GameEvents.OnPlayerHit += () => PlaySFX(playerHitSound);
-            GameEvents.OnPlayerLanded += () => PlaySFX(playerLandedSound);
-            GameEvents.OnEnemySpawned += () => PlaySFX(enemySpawnSound);
+            GameEvents.OnEnemyKill += HandleEnemyKill;
+            GameEvents.OnPlayerHit += HandlePlayerHit;
+            GameEvents.OnPlayerLanded += HandlePlayerLanded;
+            GameEvents.OnEnemySpawned += HandleEnemySpawned;
         }
 
         private void OnDisable()
         {
             GameEvents.OnGemCollected -= HandleGemCollected;
-            GameEvents.OnEnemyKill -= () => PlaySFX(enemyKillSound);
-            GameEvents.OnPlayerHit -= () => PlaySFX(playerHitSound);
-            GameEvents.OnPlayerLanded -= () => PlaySFX(playerLandedSound);
-            GameEvents.OnEnemySpawned -= () => PlaySFX(enemySpawnSound);
+            GameEvents.OnEnemyKill -= HandleEnemyKill;
+            GameEvents.OnPlayerHit -= HandlePlayerHit;
+            GameEvents.OnPlayerLanded -= HandlePlayerLanded;
+            GameEvents.OnEnemySpawned -= HandleEnemySpawned;
         }
 
         private void Update() => ResetGemPitchIfNeeded();
 
         public void PlaySFX(AudioClip clip, float pitch = 1f)
         {
-            if (clip == null || IsOnCooldown(clip)) return;
+            if (clip == null || audioSource == null || IsOnCooldown(clip)) return;
 
             lastPlayTime[clip] = Time.time;
             audioSource.pitch = pitch;
@@ -60,6 +68,11 @@ namespace Driball.Managers
             IncreaseGemPitch();
             PlaySFX(gemSound, currentGemPitch);
         }
+
+        private void HandleEnemyKill() => PlaySFX(enemyKillSound);
+        private void HandlePlayerHit() => PlaySFX(playerHitSound);
+        private void HandlePlayerLanded() => PlaySFX(playerLandedSound);
+        private void HandleEnemySpawned() => PlaySFX(enemySpawnSound);
 
         private void IncreaseGemPitch()
         {
@@ -75,7 +88,8 @@ namespace Driball.Managers
 
         private bool IsOnCooldown(AudioClip clip)
         {
-            return lastPlayTime.TryGetValue(clip, out float lastTime) && Time.time - lastTime < soundCooldown;
+            return lastPlayTime.TryGetValue(clip, out float lastTime) &&
+                   Time.time - lastTime < soundCooldown;
         }
     }
 }
